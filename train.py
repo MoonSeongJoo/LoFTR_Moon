@@ -14,7 +14,8 @@ from pytorch_lightning.plugins import DDPPlugin
 from src.config.default import get_cfg_defaults
 from src.utils.misc import get_rank_zero_only_logger, setup_gpus
 from src.utils.profiler import build_profiler
-from src.lightning.data import MultiSceneDataModule
+# from src.lightning.data import MultiSceneDataModule
+from src.lightning.data_kitti import KittiDataModule
 from src.lightning.lightning_loftr import PL_LoFTR
 
 loguru_logger = get_rank_zero_only_logger(loguru_logger)
@@ -24,10 +25,10 @@ def parse_args():
     # init a costum parser which will be added into pl.Trainer parser
     # check documentation: https://pytorch-lightning.readthedocs.io/en/latest/common/trainer.html#trainer-flags
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument(
-        'data_cfg_path', type=str, help='data config path')
-    parser.add_argument(
-        'main_cfg_path', type=str, help='main config path')
+    # parser.add_argument(
+    #     'data_cfg_path', type=str, default='/mnt/sgvrnas/sjmoon/kitti/kitti_odometry' ,help='data config path' )
+    # parser.add_argument(
+    #     'main_cfg_path', type=str, default='kitti/odom' ,help='main config path')
     parser.add_argument(
         '--exp_name', type=str, default='default_exp_name')
     parser.add_argument(
@@ -61,14 +62,15 @@ def main():
 
     # init default-cfg and merge it with the main- and data-cfg
     config = get_cfg_defaults()
-    config.merge_from_file(args.main_cfg_path)
-    config.merge_from_file(args.data_cfg_path)
+    # config.merge_from_file(args.main_cfg_path)
+    # config.merge_from_file(args.data_cfg_path)
     pl.seed_everything(config.TRAINER.SEED)  # reproducibility
     # TODO: Use different seeds for each dataloader workers
     # This is needed for data augmentation
     
     # scale lr and warmup-step automatically
-    args.gpus = _n_gpus = setup_gpus(args.gpus)
+    # args.gpus = _n_gpus = setup_gpus(args.gpus)
+    args.gpus = _n_gpus = 1
     config.TRAINER.WORLD_SIZE = _n_gpus * args.num_nodes
     config.TRAINER.TRUE_BATCH_SIZE = config.TRAINER.WORLD_SIZE * args.batch_size
     _scaling = config.TRAINER.TRUE_BATCH_SIZE / config.TRAINER.CANONICAL_BS
@@ -82,7 +84,7 @@ def main():
     loguru_logger.info(f"LoFTR LightningModule initialized!")
     
     # lightning data
-    data_module = MultiSceneDataModule(args, config)
+    data_module = KittiDataModule(args, config)
     loguru_logger.info(f"LoFTR DataModule initialized!")
     
     # TensorBoard Logger

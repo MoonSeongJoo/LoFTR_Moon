@@ -1,5 +1,6 @@
 from math import log
 from loguru import logger
+import numpy as np
 
 import torch
 from einops import repeat
@@ -35,10 +36,10 @@ def spvs_coarse(data, config):
         - for scannet dataset, there're 3 kinds of resolution {i, c, f}
         - for megadepth dataset, there're 4 kinds of resolution {i, i_resize, c, f}
     """
-    # 1. misc
-    device = data['image0'].device
-    N, _, H0, W0 = data['image0'].shape
-    _, _, H1, W1 = data['image1'].shape
+    # 1. misc 
+    device = torch.device('cpu')
+    N, _, H0, W0 = torch.tensor(data['image0']).shape
+    _, _, H1, W1 = torch.tensor(data['image1']).shape
     scale = config['LOFTR']['RESOLUTION'][0]
     scale0 = scale * data['scale0'][:, None] if 'scale0' in data else scale
     scale1 = scale * data['scale1'][:, None] if 'scale0' in data else scale
@@ -112,7 +113,7 @@ def spvs_coarse(data, config):
 def compute_supervision_coarse(data, config):
     assert len(set(data['dataset_name'])) == 1, "Do not support mixed datasets training!"
     data_source = data['dataset_name'][0]
-    if data_source.lower() in ['scannet', 'megadepth']:
+    if data_source.lower() in ['scannet', 'megadepth' , 'kitti']:
         spvs_coarse(data, config)
     else:
         raise ValueError(f'Unknown data source: {data_source}')
